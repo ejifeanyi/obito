@@ -10,18 +10,56 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+model Group {
+  id          String        @id @default(uuid())
+  name        String
+  description String?
+  code        String        @unique // For invite links
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  members     GroupMember[]
+  invites     GroupInvite[]
+}
+
+model GroupMember {
+  id        String    @id @default(uuid())
+  role      String    @default("member") // "admin" or "member"
+  joinedAt  DateTime  @default(now())
+  userId    String
+  groupId   String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  group     Group     @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, groupId])
+}
+
+model GroupInvite {
+  id        String    @id @default(uuid())
+  email     String
+  token     String    @unique
+  expiresAt DateTime
+  groupId   String
+  inviterId String
+  createdAt DateTime  @default(now())
+  group     Group     @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  inviter   User      @relation(fields: [inviterId], references: [id], onDelete: Cascade)
+}
+
+// Update the User model to include relations to groups
 model User {
-  id            String    @id @default(uuid())
-  email         String    @unique
+  id            String        @id @default(uuid())
+  email         String        @unique
   password      String?
   firstName     String?
   lastName      String?
   profileImage  String?
-  provider      String    @default("email") // "email" or "google"
-  providerId    String?   // For OAuth users
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  provider      String        @default("email") // "email" or "google"
+  providerId    String?       // For OAuth users
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
   refreshTokens RefreshToken[]
+  groupMemberships GroupMember[]
+  groupInvitesSent GroupInvite[]
 }
 
 model RefreshToken {
