@@ -1,11 +1,10 @@
 // src/controllers/group.controller.js
-import { PrismaClient } from "@prisma/client";
 import {
 	generateInviteToken,
 	generateGroupCode,
 } from "../utils/invite.utils.js";
+import prisma from '../db.js'
 
-const prisma = new PrismaClient();
 
 // Create a new group
 export const createGroup = async (req, res) => {

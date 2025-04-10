@@ -28,6 +28,19 @@ export const generateTokens = async (userId) => {
 	return { accessToken, refreshToken };
 };
 
+export const verifyToken = async (token) => {
+  try {
+    // Verify the JWT token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    
+    // Return the decoded information
+    return decoded;
+  } catch (error) {
+    console.error("Token verification error:", error);
+    return null;
+  }
+};
+
 export const verifyRefreshToken = async (token) => {
 	const refreshTokenRecord = await prisma.refreshToken.findUnique({
 		where: { token },

@@ -19,6 +19,7 @@ model Group {
   updatedAt   DateTime      @updatedAt
   members     GroupMember[]
   invites     GroupInvite[]
+  expenses    Expense[]
 }
 
 model GroupMember {
@@ -45,6 +46,40 @@ model GroupInvite {
   inviter   User      @relation(fields: [inviterId], references: [id], onDelete: Cascade)
 }
 
+model Expense {
+  id          String        @id @default(cuid())
+  amount      Float
+  description String
+  category    String?
+  splitType   String        // "equal" or "custom"
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  
+  // Relations
+  group       Group         @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  groupId     String
+  createdBy   User          @relation("CreatedExpenses", fields: [createdById], references: [id])
+  createdById String
+  paidBy      User          @relation("PaidExpenses", fields: [paidById], references: [id])
+  paidById    String
+  shares      ExpenseShare[]
+}
+
+model ExpenseShare {
+  id        String   @id @default(cuid())
+  amount    Float
+  createdAt DateTime @default(now())
+  
+  // Relations
+  expense   Expense  @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  expenseId String
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+
+  @@unique([userId, expenseId])
+}
+
+
 // Update the User model to include relations to groups
 model User {
   id            String        @id @default(uuid())
@@ -60,6 +95,9 @@ model User {
   refreshTokens RefreshToken[]
   groupMemberships GroupMember[]
   groupInvitesSent GroupInvite[]
+  createdExpenses Expense[] @relation("CreatedExpenses")
+  paidExpenses    Expense[] @relation("PaidExpenses")
+  expenseShares   ExpenseShare[]
 }
 
 model RefreshToken {

@@ -1,14 +1,12 @@
 // src/controllers/auth.controller.js
 import bcrypt from "bcryptjs";
-import { PrismaClient } from "@prisma/client";
 import {
 	generateTokens,
 	verifyRefreshToken,
 	invalidateRefreshToken,
 } from "../utils/token.utils.js";
 import axios from "axios";
-
-const prisma = new PrismaClient();
+import prisma from "../db.js";
 
 export const signup = async (req, res) => {
 	try {
