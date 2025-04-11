@@ -18,10 +18,8 @@ import {
 
 const router = express.Router();
 
-// Apply authentication middleware to all routes
 router.use(authenticateToken);
 
-// Create a new expense
 router.post("/", validate(createExpenseSchema), createExpense);
 
 // Get all expenses for a group
