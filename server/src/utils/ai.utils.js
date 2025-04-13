@@ -95,66 +95,124 @@ function categorizeBySingleWordMatch(description) {
 	const lowerDescription = description.toLowerCase();
 
 	const categoryMapping = {
+		// Food & Dining
 		restaurant: "Food & Dining",
 		cafe: "Food & Dining",
 		coffee: "Food & Dining",
 		dinner: "Food & Dining",
 		lunch: "Food & Dining",
 		breakfast: "Food & Dining",
+		pizza: "Food & Dining",
+		takeout: "Food & Dining",
+
+		// Groceries
 		grocery: "Groceries",
 		supermarket: "Groceries",
 		food: "Groceries",
+
+		// Transportation
 		uber: "Transportation",
 		lyft: "Transportation",
 		taxi: "Transportation",
 		gas: "Transportation",
+		fuel: "Transportation",
 		bus: "Transportation",
 		train: "Transportation",
+		parking: "Transportation",
+		transit: "Transportation",
+
+		// Entertainment
 		movie: "Entertainment",
 		game: "Entertainment",
 		concert: "Entertainment",
 		netflix: "Entertainment",
 		spotify: "Entertainment",
+		theater: "Entertainment",
+		event: "Entertainment",
+		ticket: "Entertainment",
+
+		// Shopping
 		shopping: "Shopping",
 		clothes: "Shopping",
+		clothing: "Shopping",
 		mall: "Shopping",
 		amazon: "Shopping",
+		store: "Shopping",
+		shop: "Shopping",
+		purchase: "Shopping",
+
+		// Utilities
 		electricity: "Utilities",
 		water: "Utilities",
 		internet: "Utilities",
 		phone: "Utilities",
 		wifi: "Utilities",
+		cable: "Utilities",
+		utility: "Utilities",
+		electric: "Utilities",
+
+		// Rent
 		rent: "Rent",
+		mortgage: "Rent",
+
+		// Travel
 		hotel: "Travel",
 		flight: "Travel",
 		airbnb: "Travel",
 		vacation: "Travel",
 		trip: "Travel",
+		booking: "Travel",
+
+		// Healthcare
 		doctor: "Healthcare",
 		medicine: "Healthcare",
 		hospital: "Healthcare",
 		pharmacy: "Healthcare",
+		medical: "Healthcare",
+		healthcare: "Healthcare",
+		fitness: "Healthcare",
+		gym: "Healthcare",
+
+		// Education
 		course: "Education",
 		tuition: "Education",
 		books: "Education",
 		school: "Education",
+
+		// Personal Care
 		haircut: "Personal Care",
 		salon: "Personal Care",
 		spa: "Personal Care",
-		gym: "Personal Care",
+
+		// Gifts & Donations
 		charity: "Gifts & Donations",
 		gift: "Gifts & Donations",
 		present: "Gifts & Donations",
+		donation: "Gifts & Donations",
+
+		// Business
 		business: "Business",
 		office: "Business",
+
+		// Home Improvement
 		repair: "Home Improvement",
 		furniture: "Home Improvement",
 		renovation: "Home Improvement",
+		maintenance: "Home Improvement",
+
+		// Insurance
 		insurance: "Insurance",
+
+		// Taxes
 		tax: "Taxes",
+
+		// Fees & Charges
 		fee: "Fees & Charges",
 		penalty: "Fees & Charges",
 		fine: "Fees & Charges",
+		subscription: "Fees & Charges",
+		payment: "Fees & Charges",
+		bill: "Fees & Charges",
 	};
 
 	for (const [keyword, category] of Object.entries(categoryMapping)) {

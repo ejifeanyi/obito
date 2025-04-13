@@ -2,8 +2,16 @@
 import { Server } from "socket.io";
 import { verifyToken } from "./token.utils.js";
 
+// Create a variable to hold the io instance
+let io;
+
+/**
+ * Setup Socket.IO server
+ * @param {Object} server - HTTP server instance
+ * @returns {Object} - Socket.IO server instance
+ */
 export const setupSocketIO = (server) => {
-	const io = new Server(server, {
+	io = new Server(server, {
 		cors: {
 			origin: process.env.CLIENT_URL || "*",
 			methods: ["GET", "POST"],
@@ -72,3 +80,6 @@ export const socketMiddleware = (io) => {
 		next();
 	};
 };
+
+// Export the io instance to be imported elsewhere
+export { io };

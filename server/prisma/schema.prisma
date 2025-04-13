@@ -20,6 +20,7 @@ model Group {
   members     GroupMember[]
   invites     GroupInvite[]
   expenses    Expense[]
+  recurringBills RecurringBill[]
 }
 
 model GroupMember {
@@ -66,17 +67,31 @@ model Expense {
 }
 
 model ExpenseShare {
-  id        String   @id @default(cuid())
-  amount    Float
-  createdAt DateTime @default(now())
+  id              String   @id @default(cuid())
+  amount          Float
+  createdAt       DateTime @default(now())
+  paid            Boolean  @default(false)
+  paidAt          DateTime?
+  paymentIntentId String?  @unique
   
   // Relations
-  expense   Expense  @relation(fields: [expenseId], references: [id], onDelete: Cascade)
-  expenseId String
-  user      User     @relation(fields: [userId], references: [id])
-  userId    String
+  expense         Expense  @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  expenseId       String
+  user            User     @relation(fields: [userId], references: [id])
+  userId          String
+  paymentReminders PaymentReminder[]
 
   @@unique([userId, expenseId])
+}
+
+model PaymentReminder {
+  id              String       @id @default(cuid())
+  status          String       // "pending", "sent", "failed"
+  createdAt       DateTime     @default(now())
+  
+  // Relations
+  expenseShare    ExpenseShare @relation(fields: [expenseShareId], references: [id], onDelete: Cascade)
+  expenseShareId  String
 }
 
 
@@ -98,6 +113,7 @@ model User {
   createdExpenses Expense[] @relation("CreatedExpenses")
   paidExpenses    Expense[] @relation("PaidExpenses")
   expenseShares   ExpenseShare[]
+  recurringBills  RecurringBill[] @relation("CreatedRecurringBills")
 }
 
 model RefreshToken {
@@ -107,4 +123,33 @@ model RefreshToken {
   expiresAt DateTime
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model RecurringBill {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  amount      Float
+  category    String
+  frequency   String    // "weekly", "biweekly", "monthly", "quarterly", "yearly"
+  nextDueDate DateTime
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  // Relations
+  group       Group     @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  groupId     String
+  createdBy   User      @relation("CreatedRecurringBills", fields: [createdById], references: [id])
+  createdById String  
+  reminders   BillReminder[]
+}
+
+model BillReminder {
+  id          String    @id @default(cuid())
+  sentAt      DateTime  @default(now())
+  status      String    // "pending", "sent", "failed"
+  
+  // Relations
+  bill        RecurringBill @relation(fields: [billId], references: [id], onDelete: Cascade)
+  billId      String
 }
