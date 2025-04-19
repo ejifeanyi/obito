@@ -192,6 +192,7 @@ export const getGroupDashboard = async (req, res) => {
 			group: {
 				id: group.id,
 				name: group.name,
+				description: group.description,
 				memberCount: group._count.members,
 			},
 			stats: expenseStats,
