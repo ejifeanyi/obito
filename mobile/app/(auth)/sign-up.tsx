@@ -39,7 +39,7 @@ const SignUp = () => {
 	// Redirect to home if already authenticated
 	useEffect(() => {
 		if (authState.user && !authState.isLoading && !signUpMutation.isPending) {
-			router.replace("/(root)/(tabs)/home");
+			router.replace("/(tabs)/dashboard");
 		}
 	}, [authState.user, authState.isLoading]);
 
@@ -56,7 +56,7 @@ const SignUp = () => {
 
 	const navigateToHome = () => {
 		setShowSuccessModal(false);
-		router.replace("/(root)/(tabs)/home");
+		router.replace("/(tabs)/dashboard");
 	};
 
 	if (authState.isLoading) {

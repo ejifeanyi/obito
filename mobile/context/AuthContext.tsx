@@ -5,15 +5,21 @@ import {
 	useContext,
 	useEffect,
 	ReactNode,
+	useRef,
 } from "react";
 import * as SecureStore from "expo-secure-store";
-import axios from "axios";
+import axios, { AxiosRequestConfig } from "axios";
 import { router } from "expo-router";
 
-// Define the API URL
+// Extend AxiosRequestConfig to include _retry
+declare module 'axios' {
+	interface AxiosRequestConfig {
+		_retry?: boolean;
+	}
+}
+
 const API_URL = "https://obito-ixea.onrender.com/api/auth";
 
-// Define the User type
 export type User = {
 	id: string;
 	email: string;
@@ -22,7 +28,6 @@ export type User = {
 	profileImage?: string;
 };
 
-// Define the Auth State type
 type AuthState = {
 	user: User | null;
 	accessToken: string | null;
@@ -31,7 +36,6 @@ type AuthState = {
 	error: string | null;
 };
 
-// Define the Auth Context type
 type AuthContextType = {
 	authState: AuthState;
 	signUp: (userData: SignUpData) => Promise<void>;
@@ -41,7 +45,6 @@ type AuthContextType = {
 	clearError: () => void;
 };
 
-// Define the Sign Up Data type
 export type SignUpData = {
 	firstName: string;
 	lastName: string;
@@ -49,7 +52,6 @@ export type SignUpData = {
 	password: string;
 };
 
-// Create the Auth Context
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Auth Provider Props
@@ -66,6 +68,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 		isLoading: true,
 		error: null,
 	});
+
+	// Use a ref to track if we're currently refreshing to prevent infinite refresh loops
+	const isRefreshing = useRef(false);
+	// Track whether we should redirect on auth failure
+	const shouldRedirectOnAuthFailure = useRef(true);
+	// Track interceptor ID to properly remove it
+	const interceptorId = useRef<number | null>(null);
 
 	// Initialize auth state from storage
 	useEffect(() => {
@@ -103,6 +112,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 		};
 
 		loadAuthState();
+
+		// Clean up the interceptor when the component unmounts
+		return () => {
+			if (interceptorId.current !== null) {
+				axios.interceptors.response.eject(interceptorId.current);
+			}
+		};
 	}, []);
 
 	// Setup axios interceptor for token refresh
@@ -111,17 +127,25 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 		axios.defaults.headers.common["Authorization"] = `Bearer ${accessToken}`;
 
 		// Remove any existing interceptors
-		axios.interceptors.response.eject(0);
+		if (interceptorId.current !== null) {
+			axios.interceptors.response.eject(interceptorId.current);
+		}
 
 		// Add response interceptor for token refresh
-		axios.interceptors.response.use(
+		interceptorId.current = axios.interceptors.response.use(
 			(response) => response,
 			async (error) => {
 				const originalRequest = error.config;
 
 				// If the error is 401 and we haven't retried yet
-				if (error.response?.status === 401 && !originalRequest._retry) {
+				if (
+					error.response?.status === 401 &&
+					!originalRequest._retry &&
+					authState.refreshToken &&
+					!isRefreshing.current
+				) {
 					originalRequest._retry = true;
+					isRefreshing.current = true;
 
 					try {
 						// Attempt to refresh the token
@@ -132,14 +156,30 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 							originalRequest.headers[
 								"Authorization"
 							] = `Bearer ${authState.accessToken}`;
+							isRefreshing.current = false;
 							// Retry the original request
 							return axios(originalRequest);
 						}
 					} catch (refreshError) {
-						// If refresh fails, redirect to login
-						await signOut();
+						isRefreshing.current = false;
+						// If refresh fails, redirect to login if we should
+						if (shouldRedirectOnAuthFailure.current) {
+							console.log("Token refresh failed, redirecting to login");
+							await signOut(false); // Don't trigger another redirect
+							router.replace("/sign-in");
+						}
 						return Promise.reject(refreshError);
 					}
+				}
+
+				// If we have a 401 and can't refresh, redirect to login
+				if (
+					error.response?.status === 401 &&
+					shouldRedirectOnAuthFailure.current
+				) {
+					console.log("Unauthorized access, redirecting to login");
+					await signOut(false); // Don't trigger another redirect
+					router.replace("/sign-in");
 				}
 
 				return Promise.reject(error);
@@ -212,6 +252,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
 			// Setup axios interceptor
 			setupAxiosInterceptor(tokens.accessToken, tokens.refreshToken);
+
+			// Reset redirect flag
+			shouldRedirectOnAuthFailure.current = true;
 		} catch (error: any) {
 			setAuthState((prev) => ({
 				...prev,
@@ -223,9 +266,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 	};
 
 	// Sign Out function
-	const signOut = async () => {
+	const signOut = async (redirect: boolean = true) => {
 		try {
 			setAuthState((prev) => ({ ...prev, isLoading: true }));
+
+			// Update redirect flag based on parameter
+			shouldRedirectOnAuthFailure.current = redirect;
 
 			// Call logout endpoint if refresh token exists
 			if (authState.refreshToken) {
@@ -258,8 +304,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 			// Clear authorization header
 			delete axios.defaults.headers.common["Authorization"];
 
-			// Navigate to sign in
-			router.replace("/sign-in");
+			// Navigate to sign in if redirect is true
+			if (redirect) {
+				router.replace("/sign-in");
+			}
 		} catch (error) {
 			console.error("Error signing out:", error);
 			setAuthState((prev) => ({
@@ -277,9 +325,16 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 				return false;
 			}
 
-			const response = await axios.post(`${API_URL}/refresh-token`, {
-				refreshToken: authState.refreshToken,
-			});
+			const response = await axios.post(
+				`${API_URL}/refresh-token`,
+				{
+					refreshToken: authState.refreshToken,
+				},
+				{
+					// Skip interceptors for this request to avoid infinite loops
+					_retry: true,
+				}
+			);
 
 			const { user, tokens } = response.data;
 
@@ -305,7 +360,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 			return true;
 		} catch (error) {
 			console.error("Error refreshing session:", error);
-			await signOut();
+
+			// Only sign out if we should redirect on auth failure
+			if (shouldRedirectOnAuthFailure.current) {
+				await signOut(true);
+			}
+
 			return false;
 		}
 	};

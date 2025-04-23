@@ -23,7 +23,7 @@ const SignIn = () => {
 		mutationFn: (credentials: { email: string; password: string }) =>
 			signIn(credentials.email, credentials.password),
 		onSuccess: () => {
-			router.replace("/(root)/(tabs)/home");
+			router.replace("/(tabs)/dashboard");
 		},
 		onError: (error: any) => {
 			Alert.alert(
@@ -36,7 +36,7 @@ const SignIn = () => {
 	// Redirect to home if already authenticated
 	useEffect(() => {
 		if (authState.user && !authState.isLoading && !signInMutation.isPending) {
-			router.replace("/(root)/(tabs)/home");
+			router.replace("/(tabs)/dashboard");
 		}
 	}, [authState.user, authState.isLoading]);
 
